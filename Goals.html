@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Goal Tracker</title>
+
+</head>
+
+<body>
+  <nav>
+    <ul>
+      <li><a href="{{url_for('home')}}">Home</a> </li>
+      <li class="highlighted"><a href="{{url_for('goals')}}">Goals</a> </li>
+      <li><a href="{{url_for('food')}}">Food</a> </li>
+      <li><a href="{{url_for('workout')}}">Workout</a> </li>
+      <li><a href="{{url_for('history')}}">History</a> </li>
+      <li><a href="{{url_for('logout')}}">Logout</a> </li>
+    </ul>
+  </nav>
+  <h1>Goal Tracker</h1>
+  <div class="container">
+
+    <form id="goalFormS" class="formInput">
+      <label for="goalInputS">Enter a short term goal:</label>
+      <input type="text" id="goalInputS" name="goalShortin" placeholder="Enter a short term goal" required>
+      <form id="update" action="#" method="post">
+        <input type="button" value="Add to Database" onclick="addToDB('goalInputS')">
+      </form>
+    </form>
+
+    <form id="goalFormL" class="formInput">
+      <label for="goalInputL">Enter a long term goal:</label>
+      <input type="text" id="goalInputL" name="goalLongin" placeholder="Enter a long term goal" required>
+      <form id="update" action="#" method="post">
+        <input type="button" value="Add to Database" onclick="addToDB('goalInputL')">
+      </form>
+    </form>
+
+  </div>
+  <div class="container" id="goalList">
+    <div id="goalListShort"></div><br>
+    <div id="goalListLong"></div><br>
+  </div>
+  <script>
+    let goals = '';
+    let typeG = null;
+    let action = null;
+    let goalData = JSON.parse('{{ goal | safe }}');
+
+    // Initialize variables to keep track of whether the text has been added
+    let shortTermTextAdded = false;
+    let longTermTextAdded = false;
+
+    // Loop through each goal data
+    goalData.forEach(goal => {
+      let goalString = String(goal);
+      let number = goalString.match(/\d+$/)[0];
+      let divID;
+      let listName;
+
+      // Determine the divID based on the number extracted from the goal
+      if (number === '0') {
+        divID = "goalListShort";
+        listName = "<Strong>Short term goals:";
+        // Check if the text has already been added
+        if (!shortTermTextAdded) {
+          let container = document.getElementById(divID);
+          if (container) {
+            let listItem = document.createElement("div");
+            listItem.innerHTML = listName;
+            container.appendChild(listItem);
+            // Set the flag to true indicating that the text has been added
+            shortTermTextAdded = true;
+          }
+        }
+      } else if (number === '1') {
+        divID = "goalListLong";
+        listName = "<Strong>Long term goals:";
+        // Check if the text has already been added
+        if (!longTermTextAdded) {
+          let container = document.getElementById(divID);
+          if (container) {
+            let listItem = document.createElement("div");
+            listItem.innerHTML = listName;
+            container.appendChild(listItem);
+            // Set the flag to true indicating that the text has been added
+            longTermTextAdded = true;
+          }
+        }
+      }
+
+      // Retrieve the DOM element corresponding to the divID
+      let container = document.getElementById(divID);
+
+      // Check if container exists
+      if (container) {
+        // Create a list item
+        let listItem = document.createElement("div");
+        listItem.innerHTML = '<br>' + goal[0] + '<button id="del" onclick="deleteFromDB(this)">X</button>';
+
+        // Append the list item to the container
+        container.appendChild(listItem);
+      }
+    });
+
+    const interval = 0.1 * 1000;
+    function refreshPage() {
+      setTimeout(function () {
+        location.reload(true);
+      }, interval);
+    }
+
+    function sanitize(string) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        "/": '&#x2F;',
+      };
+      const reg = /[&<>"'/]/ig;
+      return string.replace(reg, (match) => (map[match]));
+    }
+
+    function addToDB(id) {
+      event.preventDefault();
+      let goalName = document.getElementById(id).value;
+      sanitize(goalName);
+      if (id == "goalInputS") {
+        goals = goalName;
+        typeG = 0;
+        document.getElementById("goalFormS").reset();
+      }
+      if (id == "goalInputL") {
+        goals = goalName;
+        typeG = 1
+        document.getElementById("goalFormL").reset();
+      }
+      action = "add";
+      updateDB();
+    }
+
+    function deleteFromDB(button) {
+      event.preventDefault();
+      let listItem = button.parentElement;
+      if (listItem) {
+        let tempDiv = document.createElement('div');
+        for (let node of listItem.childNodes) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            tempDiv.appendChild(node.cloneNode());
+          }
+        }
+        let goalText = tempDiv.textContent.trim();
+        goals = goalText;
+        listItem.remove();
+        typeG = null;
+        action = "delete";
+        updateDB();
+      } else {
+        console.error("Parent div not found.");
+      }
+    }
+
+    function updateDB() {
+      const data = [goals, typeG, action];
+      const jsonData = JSON.stringify(data);
+
+      if (jsonData) {
+        fetch('/Goals', {
+          method: 'POST',
+          body: jsonData,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to post to database!');
+            }
+          })
+          .catch(error => {
+            alert(error.message);
+          });
+      } else {
+        alert("Failed to post to database!");
+      }
+      refreshPage();
+    }
+  </script>
+
+</body>
+
+</html>

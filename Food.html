@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <nav>
+    <ul>
+      <li><a href="{{url_for('home')}}">Home</a> </li>
+      <li><a href="{{url_for('goals')}}">Goals</a> </li>
+      <li class="highlighted"><a href="{{url_for('food')}}">Food</a> </li>
+      <li><a href="{{url_for('workout')}}">Workout</a> </li>
+      <li><a href="{{url_for('history')}}">History</a> </li>
+      <li><a href="{{url_for('logout')}}">Logout</a> </li>
+    </ul>
+  </nav>
+  <h1>Food/Calorie Tracker</h1>
+  <div class="container" id="food">
+
+    <form id="foodForm" class="food formInput">
+      <label for="foodName">Food:</label>
+      <input type="text" id="foodName" name="foodName" placeholder="Enter the name of the food" required>
+      <label for="servings">Servings:</label>
+      <input type="number" min="0" id="servings" name="servings" placeholder="Servings eaten" required>
+      <label for="calories">Calories:</label>
+      <input type="number" min="0" id="calories" name="calories" placeholder="Calories per serving" required>
+      <label for="protein">Protein:</label>
+      <input type="number" min="0" id="protein" name="calories" placeholder="Protein (g) per serving" required>
+      <label for="carbs">Carbohydrates:</label>
+      <input type="number" min="0" id="carbs" name="carbs" placeholder="Carbohydrates (g) per serving" required>
+      <label for="fats">Fats:</label>
+      <input type="number" min="0" id="fats" name="fats" placeholder="Fats (g) per serving" required>
+      <button type="submit">Add Food</button><br><button type="button" onclick="removeNutrition()">Remove
+        Nutrition</button>
+    </form>
+
+    <form id="goalForm" class="food formInput">
+      <label for="calGoal">Enter your calorie goal for the day:</label>
+      <input type="number" min="0" max="10000" id="calGoal" name="calorieGoal" placeholder="Calories" required>
+      <label for="proteinGoal">Enter your protein goal for the day:</label>
+      <input type="number" min="0" max="400" id="proteinGoal" name="proteinGoal" placeholder="Proteins" required>
+      <label for="carbGoal">Enter your carbohydrates goal for the day:</label>
+      <input type="number" min="0" max="500" id="carbGoal" name="carbGoal" placeholder="Carbs" required>
+      <label for="fatGoal">Enter your fat goal for the day:</label>
+      <input type="number" min="0" max="300" id="fatGoal" name="fatGoal" placeholder="Fats" required>
+      <button type="submit">Add Goal</button>
+    </form>
+
+  </div>
+  <div class="container" id="list">
+    <div id="foodList"></div><br><br>
+  </div>
+  <div id="nutritionGoals"></div>
+  <form id="update" action="#" method="post">
+    <input type="button" value="Update Database" onclick="updateDB()">
+  </form>
+  <script>
+    //Global variables
+    let calGoal = 0; let calEaten = 0;
+    let proteinGoal = 0; let proteinEaten = 0;
+    let carbGoal = 0; let carbsEaten = 0;
+    let fatGoal = 0; let fatsEaten = 0;
+    let newInput = false
+    let record = JSON.parse('{{ record | safe }}');
+    if (record && newInput !== true) {
+      calGoal = record[1];
+      calEaten = record[0];
+      proteinGoal = record[3];
+      proteinEaten = record[2];
+      carbGoal = record[5];
+      carbsEaten = record[4];
+      fatGoal = record[7];
+      fatsEaten = record[6];
+      updateGoals();
+    }
+
+    update.style.display = "none"
+
+    document.getElementById("foodForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      newInput = true;
+      let foodName = sanitize(document.getElementById("foodName").value);
+      let servings = document.getElementById("servings").value;
+      let calories = servingMultiply(servings, document.getElementById("calories").value);
+      let protein = servingMultiply(servings, document.getElementById("protein").value);
+      let carbohydrates = servingMultiply(servings, document.getElementById("carbs").value);
+      let fats = servingMultiply(servings, document.getElementById("fats").value);
+      let foodList = document.getElementById("foodList");
+      let listItem = document.createElement("div");
+      listItem.innerHTML = "<div>" + "<strong>" + foodName + ": " + calories + " calories" + ", " + protein + " grams of protein" + ", " + carbohydrates + " grams of carbs" + ", " + fats + " grams of fats" + "<button class='red-x-button delete'>X</button>" + "</div><br>";
+      foodList.appendChild(listItem);
+      document.getElementById("foodForm").reset();
+      updateNutrition(calories, protein, carbohydrates, fats);
+      updateGoals();
+      update.style.display = "block"
+    });
+
+    document.getElementById("goalForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      newInput = true;
+      calGoal = document.getElementById("calGoal").value;
+      proteinGoal = document.getElementById("proteinGoal").value;
+      carbGoal = document.getElementById("carbGoal").value;
+      fatGoal = document.getElementById("fatGoal").value;
+      document.getElementById("goalForm").reset();
+      updateGoals();
+      update.style.display = "block"
+    });
+
+    document.addEventListener("click", function (event) {
+      if (event.target.classList.contains("delete")) {
+        event.preventDefault();
+        let cur = event.target.parentElement.textContent.trim();
+        const regex = /\d+/g;
+        let numbers = cur.match(regex);
+        let flag = false;
+
+        if ((calEaten - numbers[0]) >= 0 && !flag) {
+          calEaten -= numbers[0];
+        } else {
+          flag = true;
+        }
+
+        if ((proteinEaten - numbers[1]) >= 0 && !flag) {
+          proteinEaten -= numbers[1];
+        } else {
+          flag = true;
+        }
+
+        if ((carbsEaten - numbers[2]) >= 0 && !flag) {
+          carbsEaten -= numbers[2];
+        } else {
+          flag = true;
+        }
+
+        if ((fatsEaten - numbers[3]) >= 0 && !flag) {
+          fatsEaten -= numbers[3];
+        } else {
+          flag = true;
+        }
+        if (flag == true) {
+          calEaten = 0;
+          proteinEaten = 0;
+          carbsEaten = 0;
+          fatsEaten = 0;
+        }
+        event.target.parentElement.remove();
+        updateGoals();
+      }
+    });
+
+    function updateNutrition(calories, protein, carbs, fats) {
+      calEaten += calories;
+      proteinEaten += protein;
+      carbsEaten += carbs;
+      fatsEaten += fats;
+    }
+
+    function updateGoals() {
+      nutritionGoals.innerHTML = "<strong>" + "Calories Eaten: " + calEaten + "/" + calGoal + "<br> Protein Eaten: " + proteinEaten + "/" + proteinGoal + "<br> Carbs Eaten: " + carbsEaten + "/" + carbGoal + "<br> Fat Eaten: " + fatsEaten + "/" + fatGoal;
+    }
+
+    function removeNutrition() {
+      let servings = document.getElementById("servings").value;
+      let calories = servingMultiply(servings, document.getElementById("calories").value);
+      let protein = servingMultiply(servings, document.getElementById("protein").value);
+      let carbohydrates = servingMultiply(servings, document.getElementById("carbs").value);
+      let fats = servingMultiply(servings, document.getElementById("fats").value);
+      let flag = false;
+
+      if ((calEaten - calories) >= 0 && !flag) {
+        calEaten -= calories;
+      } else {
+        flag = true;
+      }
+
+      if ((proteinEaten - protein) >= 0 && !flag) {
+        proteinEaten -= protein;
+      } else {
+        flag = true;
+      }
+
+      if ((carbsEaten - carbohydrates) >= 0 && !flag) {
+        carbsEaten -= carbohydrates;
+      } else {
+        flag = true;
+      }
+
+      if ((fatsEaten - fats) >= 0 && !flag) {
+        fatsEaten -= fats;
+      } else {
+        flag = true;
+      }
+      if (flag == true) {
+        alert("Cannot subtract from nutrients!");
+      }
+      document.getElementById("foodForm").reset();
+      updateGoals();
+    }
+
+    function sanitize(string) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        "/": '&#x2F;',
+      };
+      const reg = /[&<>"'/]/ig;
+      return string.replace(reg, (match) => (map[match]));
+    }
+
+    function servingMultiply(servings, integer) { return (integer * servings) }
+
+    function updateDB() {
+      const data = [calEaten, calGoal, proteinEaten, proteinGoal, carbsEaten, carbGoal, fatsEaten, fatGoal];
+      const jsonData = JSON.stringify(data);
+
+      if (jsonData) {
+        fetch('/Food', {
+          method: 'POST',
+          body: jsonData,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to post to database!');
+            }
+          })
+          .catch(error => {
+            alert(error.message);
+          });
+      } else {
+        alert("Failed to post to database!");
+      }
+    }
+
+  </script>
+
+</body>
+
+</html>

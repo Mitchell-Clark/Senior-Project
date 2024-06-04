@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercise Log</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <!-- Navigation Bar -->
+  <nav>
+    <ul>
+      <li><a href="{{url_for('home')}}">Home</a> </li>
+      <li><a href="{{url_for('goals')}}">Goals</a> </li>
+      <li><a href="{{url_for('food')}}">Food</a> </li>
+      <li class="highlighted"><a href="{{url_for('workout')}}">Workout</a> </li>
+      <li><a href="{{url_for('history')}}">History</a> </li>
+      <li><a href="{{url_for('logout')}}">Logout</a> </li>
+    </ul>
+  </nav>
+
+  <!-- Exercise Log Form -->
+  <h1>Exercise Log</h1>
+  <div class="container">
+    <form id="exerciseForm" class="formInput">
+      <label for="exerciseName">Exercise:</label>
+      <input type="text" id="exerciseName" name="exerciseName" placeholder="Enter the name of the exercise" required>
+      <label for="timeSpent">Time Spent (minutes):</label>
+      <input type="number" id="timeSpent" name="timeSpent" placeholder="Enter the time spent on the exercise" required>
+      <label for="weightUsed">Weight Used (lbs):</label>
+      <input type="number" id="weightUsed" name="weightUsed" placeholder="Enter the weight used during the exercise">
+      <label for="numSets">Number of Sets:</label>
+      <input type="number" id="numSets" name="numSets" placeholder="Enter the number of sets performed">
+      <label for="numReps">Number of Reps:</label>
+      <input type="number" id="numReps" name="numReps" placeholder="Enter the number of reps performed">
+      <form id="update" action="#" method="post">
+        <input type="button" value="Update Database" onclick="addToDB()">
+      </form>
+    </form>
+  </div>
+
+  <!-- Display Workout Data -->
+  <div id="workoutData"></div>
+
+  <script>
+    // JavaScript Code
+    let exerciseName = null;
+    let timeSpent = null;
+    let weightUsed = null;
+    let numSets = null;
+    let numReps = null;
+    let action = null;
+
+    // Parse workout data from server-side variable
+    let workout = JSON.parse('{{ workout | safe }}');
+
+    // If workout data exists, display it
+    if (workout == '') {
+      document.getElementById("workoutData").innerHTML = '';
+    } else {
+      let isFirst = true; // Flag to check if it's the first workout
+      workout.forEach(element => {
+        let str = element;
+        let listItem = document.createElement("div");
+
+        // Append "Workout:" only once if it's the first workout
+        if (isFirst) {
+          listItem.innerHTML = 'Workout(s):<br>';
+          isFirst = false; // Set the flag to false after appending "Workout:"
+        }
+
+        // Display workout details
+        listItem.innerHTML += '<br>Exercise: ' + str[0] + '<br> Time Spent: ' + str[1] + ' minutes <br> Weight: ' + str[2] + 'lbs<br> Sets: ' + str[3] + '<br> Reps: ' + str[4] + '<br><button id="delete" onclick="deleteFromDB(this)">Delete</button>';
+        workoutData.appendChild(listItem);
+      });
+    }
+
+    // Function to sanitize input strings
+    function sanitize(string) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        "/": '&#x2F;',
+      };
+      const reg = /[&<>"'/]/ig;
+      return string.replace(reg, (match) => (map[match]));
+    }
+
+    // Function to add exercise to database
+    function addToDB() {
+      event.preventDefault();
+      exerciseName = sanitize(document.getElementById("exerciseName").value);
+      timeSpent = document.getElementById("timeSpent").value;
+      weightUsed = document.getElementById("weightUsed").value;
+      numSets = document.getElementById("numSets").value;
+      numReps = document.getElementById("numReps").value;
+      document.getElementById("exerciseForm").reset();
+      action = "add";
+      updateDB();
+    }
+
+    // Function to delete exercise from database
+    function deleteFromDB(button) {
+      event.preventDefault();
+      let listItem = button.parentElement; // Get the parent element of the button (which should be the div containing exercise info)
+      if (listItem) {
+        listItem.remove(); // Remove the div containing the exercise info
+        action = "delete";
+        // Extract exercise name
+        let exerciseInfo = listItem.textContent.trim();
+        let exerciseNameIndex = exerciseInfo.indexOf("Exercise:") + "Exercise:".length;
+        let exerciseNameEndIndex = exerciseInfo.indexOf("Time Spent:");
+        exerciseName = exerciseInfo.substring(exerciseNameIndex, exerciseNameEndIndex).trim();
+        timeSpent = null;
+        weightUsed = null;
+        numSets = null;
+        numReps = null;
+        updateDB();
+      } else {
+        console.error("Parent div not found.");
+      }
+    }
+
+    // Function to refresh page after updating database
+    const interval = 0.1 * 1000;
+    function refreshPage() {
+      setTimeout(function () {
+        location.reload(true);
+      }, interval);
+    }
+
+    // Function to update database with exercise data
+    function updateDB() {
+      const data = [exerciseName, timeSpent, weightUsed, numSets, numReps, action];
+      const jsonData = JSON.stringify(data);
+
+      if (jsonData) {
+        // Post data to server
+        fetch('/Workout', {
+          method: 'POST',
+          body: jsonData,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to post to database!');
+            }
+          })
+          .catch(error => {
+            alert(error.message);
+          });
+      } else {
+        alert("Failed to post to database!");
+      }
+      refreshPage(); // Refresh page after updating database
+    }
+  </script>
+
+</body>
+
+</html>

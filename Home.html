@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!-- Navigation menu -->
+    <nav>
+        <ul>
+            <li class="highlighted"><a href="{{url_for('home')}}">Home</a> </li>
+            <li><a href="{{url_for('goals')}}">Goals</a> </li>
+            <li><a href="{{url_for('food')}}">Food</a> </li>
+            <li><a href="{{url_for('workout')}}">Workout</a> </li>
+            <li><a href="{{url_for('history')}}">History</a> </li>
+            <li><a href="{{url_for('logout')}}">Logout</a> </li>
+        </ul>
+    </nav>
+    <!-- Container for pie charts -->
+    <div class="container">
+        <img src="data:image/png;base64,{{ pie_chart1 }}" alt="Nutrition Pie Chart">
+        <img src="data:image/png;base64,{{ pie_chart2 }}" alt="Nutrition Pie Chart">
+    </div>
+    <!-- Heading for displayed exercises -->
+    <h2 id="exer"></h2>
+    <!-- Container for displayed exercises -->
+    <div class="container">
+        <div id="workoutData" class="home"></div>
+    </div>
+    <footer>
+        <div><a href="{{url_for('resources')}}">References</a></div>
+    </footer>
+</body>
+<!-- JavaScript section -->
+<script>
+    // Parsing workout data from Flask into JavaScript variable
+    let workout = JSON.parse('{{ workout | safe }}');
+
+    // Checking if workout data is empty
+    if (workout == '') {
+        document.getElementById("workoutData").innerHTML = '';
+        document.getElementById("exer").textContent = 'No Exercises from Today';
+    } else {
+        // Looping through the exercises and displaying them, limited to three
+        let displayedExercises = Math.min(workout.length, 3);
+        for (let i = 0; i < displayedExercises; i++) {
+            let element = workout[i];
+            let str = element;
+            let listItem = document.createElement("div");
+            listItem.innerHTML = '<br>Exercise: ' + str[0] + '<br> Time Spent: ' + str[1] + ' minutes <br> Weight: ' + str[2] + 'lbs<br> Sets: ' + str[3] + '<br> Reps: ' + str[4] + '<br>';
+            workoutData.appendChild(listItem);
+        }
+
+        // Update heading to display the number of exercises or mention if less than three
+        if (workout.length >= 3) {
+            document.getElementById("exer").textContent = '3 Exercises from Today:';
+        } else {
+            document.getElementById("exer").textContent = workout.length + ' Exercises from Today:';
+        }
+    }
+</script>
+
+</html>

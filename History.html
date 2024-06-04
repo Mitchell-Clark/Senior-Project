@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav>
+        <ul>
+            <li><a href="{{url_for('home')}}">Home</a> </li>
+            <li><a href="{{url_for('goals')}}">Goals</a> </li>
+            <li><a href="{{url_for('food')}}">Food</a> </li>
+            <li><a href="{{url_for('workout')}}">Workout</a> </li>
+            <li class="highlighted"><a href="{{url_for('history')}}">History</a> </li>
+            <li><a href="{{url_for('logout')}}">Logout</a> </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div>
+        <!-- History Form -->
+        <div class="container">
+            <form id="historyForm" class="formInput">
+                <label for="history">Enter a date:</label>
+                <input type="date" id="history" name="history" required>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+
+        <!-- Nutrition Goals Display -->
+        <div id="history" class="container">
+            <div id="nutritionGoals"></div>
+            <!-- Workout Data Display -->
+            <div id="workoutData"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Adding event listener to the history form
+        document.getElementById("historyForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            callDB();
+        });
+
+        // Function to fetch data from the server
+        function callDB() {
+            // Getting date input from the form
+            let date = document.getElementById("history").value;
+            const data = date;
+            const jsonData = JSON.stringify(data);
+
+            if (jsonData) {
+                // Fetching data from the server
+                fetch('/History', {
+                    method: 'POST',
+                    body: jsonData,
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to post to database!');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Displaying nutrition goals if available
+                        if (data.nutrition == null) {
+                            document.getElementById("nutritionGoals").innerHTML = ''
+                        } else {
+                            document.getElementById("nutritionGoals").innerHTML =
+                                `<p>Nutrition:<br> Calories: ${data.nutrition[0]}/${data.nutrition[1]} 
+                                <br> Protein: ${data.nutrition[2]}/${data.nutrition[3]}
+                                <br> Carbs: ${data.nutrition[4]}/${data.nutrition[5]}
+                                <br> Fats: ${data.nutrition[6]}/${data.nutrition[7]}</p>
+                                <img src="data:image/png;base64,${data.image}" alt="Nutrition Pie Chart">`;
+                        }
+                        // Displaying workout data if available
+                        if (data.workout == '') {
+                            document.getElementById("workoutData").innerHTML = ''
+                        } else {
+                            data.workout.forEach(element => {
+                                let listItem = document.createElement("div");
+                                listItem.innerHTML = '<br>Workouts:<br> Exercise: ' + element[0] + '<br> Time Spent: ' + element[1] + ' minutes <br> Weight: ' + element[2] + 'lbs<br> Sets: ' + element[3] + '<br> Reps: ' + element[4];
+                                // Appending the div to the workoutData container
+                                workoutData.appendChild(listItem);
+                            });
+                        }
+                        if (!data.nutrition && data.workout == '') {
+                            alert("No data found!")
+                        }
+                    })
+                    .catch(error => {
+                        alert(error.message);
+                    });
+            } else {
+                alert("Failed to post to database!");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

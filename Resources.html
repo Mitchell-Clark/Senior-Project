@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resources Used</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{url_for('home')}}">Home</a> </li>
+            <li><a href="{{url_for('goals')}}">Goals</a> </li>
+            <li><a href="{{url_for('food')}}">Food</a> </li>
+            <li><a href="{{url_for('workout')}}">Workout</a> </li>
+            <li><a href="{{url_for('history')}}">History</a> </li>
+            <li><a href="{{url_for('logout')}}">Logout</a> </li>
+        </ul>
+    </nav>
+    <h1>Code Taken from Internet</h1>
+    <div>
+        <a href="https://tinyurl.com/yv3rp3fe">Stack Overflow for sanitize method</a><br>
+        <a href="https://codeshack.io/login-system-python-flask-mysql/">Login and Register Pages</a>
+    </div>
+</body>
+
+</html>
